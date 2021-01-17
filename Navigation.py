@@ -1,97 +1,91 @@
+from collections import defaultdict
 from queue import Queue
-
-OBSTRUCTION = '#'
-SPACE = ' '
 
 class LocationError(Exception):
     pass
 
-def createMaze():
-    maze = []
-    maze.append(["#","#", "#", "#", "#", "#","#"])
-    maze.append(["#"," ", " ", " ", "#", " ","#"])
-    maze.append(["#"," ", "#", " ", "#", " ","#"])
-    maze.append(["#"," ", "#", " ", " ", " ","#"])
-    maze.append(["#"," ", "#", "#", "#", " ","#"])
-    maze.append(["#"," ", " ", " ", "#", " ","#"])
-    maze.append(["#","#", "#", "#", "#", "#","#"])
-
-    return maze
-
-def createMaze2():
-    maze = []
-    maze.append(["#","#", "#", "#", "#", "#", "#", "#", "#"])
-    maze.append(["#"," ", " ", " ", " ", " ", " ", " ", "#"])
-    maze.append(["#"," ", "#", "#", " ", "#", "#", " ", "#"])
-    maze.append(["#"," ", "#", " ", " ", " ", "#", " ", "#"])
-    maze.append(["#"," ", "#", " ", "#", " ", "#", " ", "#"])
-    maze.append(["#"," ", "#", " ", "#", " ", "#", " ", "#"])
-    maze.append(["#"," ", "#", " ", "#", " ", "#", "#", "#"])
-    maze.append(["#"," ", " ", " ", " ", " ", " ", " ", "#"])
-    maze.append(["#","#", "#", "#", "#", "#", "#", "#", "#"])
-
-    return maze
-
-def createEmptySpace(n):
-    return [[" " for i in range(n)] for i in range(n)]
-
 class Navigation:
 
     def __init__(self):
-        self.map = None
-        self.pos = None
+        self.graph = defaultdict(list)
+        self.current_position = None
         self.goal = None
         self.path = []
 
-    def update_map(self, _map:list): # TODO
-        self.map = _map
-
     def set_position(self, x:int, y:int):
-        if self.map[y][x] == OBSTRUCTION:
+        if (x, y) not in self.graph:
             raise LocationError
-        self.pos = (x, y)
+        self.current_position = (x, y)
     
     def set_goal(self, x:int, y:int):
-        if self.map[y][x] == OBSTRUCTION:
+        if (x, y) not in self.graph:
             raise LocationError
         self.goal = (x, y)
 
+    def add_path(self, u:tuple, v:tuple):
+        self.graph[u].append(v)
+    
+    def del_path(self, u:tuple, v:tuple):
+        self.graph[u].remove(v)
+
     def calculate_path(self):
-        if not self.pos or not self.goal:
+        if not self.current_position or not self.goal:
             return
-        queue = Queue()
         visited = set()
-        queue.put([self.pos[0], self.pos[1], []])
-        visited.add((self.pos[0], self.pos[1]))
-        
+        queue = Queue()
+        queue.put((self.current_position, []))
+        visited.add(self.current_position)
         while not queue.empty():
-            x, y, path = queue.get()
+            (x, y), path = queue.get()
             if (x, y) == self.goal:
                 self.path = path
                 return
-            if y-1 >= 0 and self.map[y-1][x] != OBSTRUCTION and (x, y-1) not in visited:
-                queue.put([x, y-1, path+[(x, y-1)]])
-                visited.add((x, y-1))
-            if y+1 < len(self.map) and self.map[y+1][x] != OBSTRUCTION and (x, y+1) not in visited:
-                queue.put([x, y+1, path+[(x, y+1)]])
-                visited.add((x, y+1))
-            if x-1 >= 0 and self.map[y][x-1] != OBSTRUCTION and (x-1, y) not in visited:
-                queue.put([x-1, y, path+[(x-1, y)]])
-                visited.add((x, y-1))
-            if x+1 < len(self.map[y]) and self.map[y][x+1] != OBSTRUCTION and (x+1, y) not in visited:
-                queue.put([x+1, y, path+[(x+1, y)]])
-                visited.add((x+1, y))
-        self.path = []
-
-    def get_path(self): # TODO
-        return self.path.pop(0)
-
+            for p in filter(lambda point: point not in visited, self.graph[(x, y)]):
+                queue.put((p, path+[p]))
+                visited.add(p)
 
 if __name__ == '__main__':
+    def createDummy(x, n):
+        for i in range(n):
+            for j in range(n):
+                if i>0 and j>0 and i<n-1 and j<n-1:
+                    x.add_path((i, j), (i-1,j))
+                    x.add_path((i, j), (i+1,j))
+                    x.add_path((i, j), (i,j-1))
+                    x.add_path((i, j), (i,j+1))
+                elif i==0 and j==0 and n>1:
+                    x.add_path((0, 0), (0, 1))
+                    x.add_path((0, 0), (1, 0))
+                elif i==0 and j==n-1 and n>1:
+                    x.add_path((i, j), (i+1, j))
+                    x.add_path((i, j), (i, j-1))
+                elif i==n-1 and j==0 and n>1:
+                    x.add_path((i, j), (i-1, j))
+                    x.add_path((i, j), (i, j+1))
+                elif i==n-1 and j==n-1 and n>1:
+                    x.add_path((i, j), (i-1, j))
+                    x.add_path((i, j), (i, j-1))
+                elif i==0 and j!=n-1 and j!=0 and n>1:
+                    x.add_path((i, j), (i+1, j))
+                    x.add_path((i, j), (i, j-1))
+                    x.add_path((i, j), (i, j+1))
+                elif j==0 and i!=n-1 and i!=0 and n>1:
+                    x.add_path((i, j), (i-1, j))
+                    x.add_path((i, j), (i+1, j))
+                    x.add_path((i, j), (i, j+1))
+                elif i==n-1 and j!=n-1 and j!=0 and n>1:
+                    x.add_path((i, j), (i-1, j))
+                    x.add_path((i, j), (i, j-1))
+                    x.add_path((i, j), (i, j+1))
+                elif j==n-1 and i!=n-1 and i!=0 and n>1:
+                    x.add_path((i, j), (i-1, j))
+                    x.add_path((i, j), (i+1, j))
+                    x.add_path((i, j), (i, j-1))
+    import time
     navigation = Navigation()
-    # navigation.update_map(createMaze2())
-    navigation.update_map(createEmptySpace(1000))
-    navigation.set_position(1, 1)
-    navigation.set_goal(999, 999)
+    createDummy(navigation, 100)
+    navigation.set_position(0, 0)
+    navigation.set_goal(99,99)
+    t = time.time()
     navigation.calculate_path()
-    print(len(navigation.path))
+    print(time.time()-t)
