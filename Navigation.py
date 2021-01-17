@@ -1,5 +1,4 @@
-from collections import defaultdict
-from queue import Queue
+from collections import defaultdict, deque
 
 class LocationError(Exception):
     pass
@@ -10,7 +9,7 @@ class Navigation:
         self.graph = defaultdict(list)
         self.current_position = None
         self.goal = None
-        self.path = []
+        self.path = None
 
     def set_position(self, x:int, y:int):
         if (x, y) not in self.graph:
@@ -42,26 +41,27 @@ class Navigation:
         if not self.current_position or not self.goal:
             return False
         visited = set()
-        queue = Queue()
-        queue.put((self.current_position, []))
+        queue = deque()
+        queue.append((self.current_position, []))
         visited.add(self.current_position)
-        while not queue.empty():
-            (x, y), path = queue.get()
+        while len(queue):
+            (x, y), path = queue.popleft()
             if (x, y) == self.goal:
                 self.path = path
                 return True
             for p in filter(lambda point: point not in visited, self.graph[(x, y)]):
-                queue.put((p, path+[p]))
+                queue.append((p, path+[p]))
                 visited.add(p)
         self.path = []
         return False
 
     def navigate(self):
         try:
+            past_position = self.current_position
             self.current_position = self.path.pop(0)
-            return self.current_position
+            return (past_position, self.current_position)
         except IndexError:
-            return self.current_position
+            return (self.current_position, self.current_position)
 
     def at_destination(self):
         return self.current_position == self.goal and self.current_position != None
