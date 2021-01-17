@@ -1,4 +1,5 @@
 from collections import defaultdict, deque
+from itertools import chain
 
 class LocationError(Exception):
     pass
@@ -42,25 +43,26 @@ class Navigation:
             return False
         visited = set()
         queue = deque()
-        queue.append((self.current_position, []))
+        queue.append((self.current_position, tuple()))
         visited.add(self.current_position)
         while len(queue):
             (x, y), path = queue.popleft()
             if (x, y) == self.goal:
-                self.path = path
+                self.path = deque(path)
                 return True
-            for p in filter(lambda point: point not in visited, self.graph[(x, y)]):
-                queue.append((p, path+[p]))
-                visited.add(p)
-        self.path = []
+            for p in self.graph[(x, y)]:
+                if p not in visited:
+                    queue.append((p, chain(path, (p,))))
+                    visited.add(p)
+        self.path = None
         return False
 
     def navigate(self):
         try:
             past_position = self.current_position
-            self.current_position = self.path.pop(0)
+            self.current_position = self.path.popleft()
             return (past_position, self.current_position)
-        except IndexError:
+        except (IndexError, AttributeError):
             return (self.current_position, self.current_position)
 
     def at_destination(self):
