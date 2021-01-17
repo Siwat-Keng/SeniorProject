@@ -16,21 +16,31 @@ class Navigation:
         if (x, y) not in self.graph:
             raise LocationError
         self.current_position = (x, y)
-    
+        return True
+
     def set_goal(self, x:int, y:int):
         if (x, y) not in self.graph:
             raise LocationError
         self.goal = (x, y)
+        return True
 
     def add_path(self, u:tuple, v:tuple):
-        self.graph[u].append(v)
-    
+        try:
+            self.graph[u].append(v)
+            return True
+        except ValueError:
+            return False
+
     def del_path(self, u:tuple, v:tuple):
-        self.graph[u].remove(v)
+        try:
+            self.graph[u].remove(v)
+            return True
+        except ValueError:
+            return False
 
     def calculate_path(self):
         if not self.current_position or not self.goal:
-            return
+            return False
         visited = set()
         queue = Queue()
         queue.put((self.current_position, []))
@@ -39,53 +49,19 @@ class Navigation:
             (x, y), path = queue.get()
             if (x, y) == self.goal:
                 self.path = path
-                return
+                return True
             for p in filter(lambda point: point not in visited, self.graph[(x, y)]):
                 queue.put((p, path+[p]))
                 visited.add(p)
+        self.path = []
+        return False
 
-if __name__ == '__main__':
-    def createDummy(x, n):
-        for i in range(n):
-            for j in range(n):
-                if i>0 and j>0 and i<n-1 and j<n-1:
-                    x.add_path((i, j), (i-1,j))
-                    x.add_path((i, j), (i+1,j))
-                    x.add_path((i, j), (i,j-1))
-                    x.add_path((i, j), (i,j+1))
-                elif i==0 and j==0 and n>1:
-                    x.add_path((0, 0), (0, 1))
-                    x.add_path((0, 0), (1, 0))
-                elif i==0 and j==n-1 and n>1:
-                    x.add_path((i, j), (i+1, j))
-                    x.add_path((i, j), (i, j-1))
-                elif i==n-1 and j==0 and n>1:
-                    x.add_path((i, j), (i-1, j))
-                    x.add_path((i, j), (i, j+1))
-                elif i==n-1 and j==n-1 and n>1:
-                    x.add_path((i, j), (i-1, j))
-                    x.add_path((i, j), (i, j-1))
-                elif i==0 and j!=n-1 and j!=0 and n>1:
-                    x.add_path((i, j), (i+1, j))
-                    x.add_path((i, j), (i, j-1))
-                    x.add_path((i, j), (i, j+1))
-                elif j==0 and i!=n-1 and i!=0 and n>1:
-                    x.add_path((i, j), (i-1, j))
-                    x.add_path((i, j), (i+1, j))
-                    x.add_path((i, j), (i, j+1))
-                elif i==n-1 and j!=n-1 and j!=0 and n>1:
-                    x.add_path((i, j), (i-1, j))
-                    x.add_path((i, j), (i, j-1))
-                    x.add_path((i, j), (i, j+1))
-                elif j==n-1 and i!=n-1 and i!=0 and n>1:
-                    x.add_path((i, j), (i-1, j))
-                    x.add_path((i, j), (i+1, j))
-                    x.add_path((i, j), (i, j-1))
-    import time
-    navigation = Navigation()
-    createDummy(navigation, 100)
-    navigation.set_position(0, 0)
-    navigation.set_goal(99,99)
-    t = time.time()
-    navigation.calculate_path()
-    print(time.time()-t)
+    def navigate(self):
+        try:
+            self.current_position = self.path.pop(0)
+            return self.current_position
+        except IndexError:
+            return self.current_position
+
+    def at_destination(self):
+        return self.current_position == self.goal and self.current_position != None
