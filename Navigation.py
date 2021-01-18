@@ -7,7 +7,7 @@ class LocationError(Exception):
 class Navigation:
 
     def __init__(self):
-        self.graph = defaultdict(list)
+        self.graph = defaultdict(tuple)
         self.current_position = None
         self.goal = None
         self.path = None
@@ -25,18 +25,15 @@ class Navigation:
         return True
 
     def add_path(self, u:tuple, v:tuple):
-        try:
-            self.graph[u].append(v)
-            return True
-        except ValueError:
-            return False
+        self.graph[u] = self.graph[u] + (v, )
 
     def del_path(self, u:tuple, v:tuple):
-        try:
-            self.graph[u].remove(v)
-            return True
-        except ValueError:
-            return False
+        self.graph[u] = (e for e in self.graph[u] if e!=v)
+    
+    def del_all_path(self, node:tuple):
+        self.graph.pop(node, None)
+        for (x, y) in self.graph:
+            self.graph[(x, y)] = (e for e in self.graph[(x, y)] if e!=node)
 
     def calculate_path(self):
         if not self.current_position or not self.goal:
@@ -52,7 +49,7 @@ class Navigation:
                 return True
             for p in self.graph[(x, y)]:
                 if p not in visited:
-                    queue.append((p, chain(path, (p,))))
+                    queue.append((p, chain(path, (p, ))))
                     visited.add(p)
         self.path = None
         return False

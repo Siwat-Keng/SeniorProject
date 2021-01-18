@@ -46,6 +46,9 @@ if __name__ == '__main__':
     navigation.set_position(0, 0)
     navigation.set_goal(n-1, n-1)
     t = time.time()
+    navigation.del_all_path((n//2, n//2))
+    print('Modified Map in {}s'.format(time.time()-t))
+    t = time.time()
     navigation.calculate_path()
     print('Calculated path in {}s'.format(time.time()-t))
     while not navigation.at_destination():
