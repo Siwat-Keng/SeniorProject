@@ -34,7 +34,8 @@ class Navigation:
     def del_all_path(self, node: tuple):
         self.graph.pop(node, None)
         for (x, y) in self.graph:
-            self.graph[(x, y)] = tuple(e for e in self.graph[(x, y)] if e != node)
+            self.graph[(x, y)] = tuple(
+                e for e in self.graph[(x, y)] if e != node)
 
     def calculate_path(self):
         if not self.current_position or not self.goal:
@@ -48,8 +49,8 @@ class Navigation:
                 if p not in backtracker:
                     queue.append(p)
                     backtracker[p] = (x, y)
-                    if (x, y) == self.goal:
-                        backtrack = (x, y)
+                    if p == self.goal:
+                        backtrack = p
                         self.path = deque()
                         while backtrack != self.current_position:
                             self.path.append(backtrack)
@@ -61,7 +62,7 @@ class Navigation:
     def navigate(self):
         try:
             past_position = self.current_position
-            self.current_position = self.path.popleft()
+            self.current_position = self.path.pop()
             return (past_position, self.current_position)
         except (IndexError, AttributeError):
             return (self.current_position, self.current_position)
