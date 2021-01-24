@@ -54,11 +54,10 @@ class Navigation:
                     queue.append(p)
                     backtracker[p] = point
                     if p == self.goal:
-                        backtrack = p
                         self.path = deque()
-                        while backtrack != self.current_position:
-                            self.path.append(backtrack)
-                            backtrack = backtracker[backtrack]
+                        while p != self.current_position:
+                            self.path.append(p)
+                            p = backtracker[p]
                         return True
         self.path = deque()
         return False
