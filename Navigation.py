@@ -79,14 +79,3 @@ class Navigation:
             self.all_path = found
             return True
         return False
-
-    def navigate(self):
-        try:
-            past_position = self.current_position
-            self.current_position = self.path.pop()
-            return (past_position, self.current_position)
-        except (IndexError, AttributeError):
-            return (self.current_position, self.current_position)
-
-    def at_destination(self):
-        return self.current_position == self.goal and self.current_position != None

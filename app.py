@@ -39,7 +39,9 @@ def createDummy(x, n):
 if __name__ == '__main__':
     import time
     from Navigation import Navigation
+    from DifferentialDrive import DifferentialDrive
     navigation = Navigation()
+    diffdrive = DifferentialDrive(10)
     t = time.time()
     n = int(input('Enter map size: '))
     createDummy(navigation, n)
@@ -56,10 +58,6 @@ if __name__ == '__main__':
     t = time.time()
     navigation.calculate_shortest_path()
     print('Calculated path in {}s'.format(time.time()-t))
-    while not navigation.at_destination():
-        input()
-        print(navigation.navigate())
-    print('Done')
-    # t = time.time()
-    # navigation.calculate_all_path()
-    # print('Calculated path in {}s'.format(time.time()-t))
+    diffdrive.set_path(navigation.path)
+    diffdrive.create_robot_motion()
+    print(diffdrive.robot_motion)
