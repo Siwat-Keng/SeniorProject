@@ -15,20 +15,24 @@ class Navigation:
     def __init__(self):
         self.graph = defaultdict(tuple)
         self.current_position = None
+        self.start_direction = None
         self.goal = None
+        self.final_direction = None
         self.path = deque()
         self.all_path = tuple()
 
-    def set_position(self, x: int, y: int):
+    def set_position(self, x: int, y: int, z: float):
         if (x, y) not in self.graph:
             raise LocationError
         self.current_position = (x, y)
+        self.start_direction = z
         return True
 
-    def set_goal(self, x: int, y: int):
+    def set_goal(self, x: int, y: int, z: float):
         if (x, y) not in self.graph:
             raise LocationError
         self.goal = (x, y)
+        self.final_direction = z
         return True
 
     def add_path(self, u: tuple, v: tuple):
@@ -53,7 +57,7 @@ class Navigation:
                 for neighbor in self.graph[current_position]:
                     distance = hypot(
                         current_position[0]-neighbor[0], current_position[1]-neighbor[1])
-                    if distance < distances[neighbor]:
+                    if distance < distances[neighbor] and neighbor in self.graph:
                         distances[neighbor] = distance
                         backtracker[neighbor] = current_position
                         if neighbor == self.goal:
@@ -63,4 +67,5 @@ class Navigation:
                                 neighbor = backtracker[neighbor]
                             return True
                         heappush(queue, (distance, neighbor))
+        self.path = deque()
         return False
