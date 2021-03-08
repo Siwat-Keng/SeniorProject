@@ -78,7 +78,7 @@ if __name__ == '__main__':
                 motor_speed = diffdrive.get_motor_speed(current_position[0], current_position[1], current_position[2],
                                                         datetime.now().timestamp())
                 print(motor_speed)
-                time.sleep(0.4)
+                time.sleep(diffdrive.turn_period/10)
             diffdrive.turn_timer = 0
             continue
         else:
