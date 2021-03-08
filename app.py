@@ -49,7 +49,7 @@ if __name__ == '__main__':
     print('Created Map in {}s'.format(time.time()-t))
     navigation.set_position(0, 0, 0)
     print('Set Current Position : {}'.format((0, 0, 0)))
-    navigation.set_goal(n-1, n-1, 0)
+    navigation.set_goal(n-1, n-1, 90)
     print('Set Goal : {}'.format((n-1, n-1, 0)))
     t = time.time()
     navigation.calculate_shortest_path()
