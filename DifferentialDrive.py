@@ -1,16 +1,14 @@
-from math import atan2, degrees, sin
+from math import atan2, degrees, radians, sin, pi,acos
 from collections import deque
 
 DEFAULT_SPEED = 1
-TURN_PERIOD = 5
-TURN_CONSTANT = 1
-TRUCK_LENGHT = 10
+TRUCK_LENGHT = 2
+TURN_CONSTANT = 0.5
 
-
-def get_angle(timer):
-    if timer <= TURN_PERIOD/2:
+def get_angle(timer, period):
+    if timer <= period/2:
         return TURN_CONSTANT*timer
-    return TURN_CONSTANT*(TURN_PERIOD-timer)
+    return TURN_CONSTANT*(period-timer)
 
 
 class DifferentialDrive:
@@ -19,6 +17,7 @@ class DifferentialDrive:
         self.dimension = dimension
         self.robot_motion = []
         self.turn_timer = 0
+        self.turn_period = None
         self.path = []
 
     def set_path(self, path: deque):
@@ -46,18 +45,24 @@ class DifferentialDrive:
             # TODO check if location error
             if (pos_x, pos_y, direction) == self.robot_motion[0]:
                 self.robot_motion.popleft()
-            if direction != self.robot_motion[0]:
+            if direction != self.robot_motion[0][2]:
                 if not self.turn_timer:
+                    try:
+                        self.turn_period = 2/TURN_CONSTANT*acos(1-(TURN_CONSTANT*self.dimension/(2*DEFAULT_SPEED)*radians(self.robot_motion[0][2]-direction)))
+                    except ValueError:
+                        self.turn_period = 2/TURN_CONSTANT*acos(1-(TURN_CONSTANT*self.dimension/(2*DEFAULT_SPEED)*radians(direction-self.robot_motion[0][2])))
                     self.turn_timer = time
-                if time-self.turn_timer <= TURN_PERIOD/2:
+                if time-self.turn_timer <= self.turn_period/2:
                     omega = DEFAULT_SPEED/TRUCK_LENGHT * \
-                        sin(get_angle(time-self.turn_timer)) + TURN_CONSTANT
+                        sin(get_angle(time-self.turn_timer, self.turn_period)) + TURN_CONSTANT
                 else:
                     omega = DEFAULT_SPEED/TRUCK_LENGHT * \
-                        sin(get_angle(time-self.turn_timer)) + TURN_CONSTANT
+                        sin(get_angle(time-self.turn_timer, self.turn_period)) - TURN_CONSTANT
             else:
                 self.turn_timer = 0
                 omega = 0
-            return (DEFAULT_SPEED - omega*self.dimension/2, DEFAULT_SPEED + omega*self.dimension/2)
+            if direction > self.robot_motion[0][2]:
+                omega *= -1
+            return (DEFAULT_SPEED + omega*self.dimension/2, DEFAULT_SPEED - omega*self.dimension/2)
         except IndexError:
             return (0, 0)

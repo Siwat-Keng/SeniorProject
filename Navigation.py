@@ -1,8 +1,13 @@
 from collections import defaultdict, deque
+from heapq import heappush, heappop
+from math import hypot
 
 
 class LocationError(Exception):
     pass
+
+def default_inf():
+    return float('inf')
 
 
 class Navigation:
@@ -29,13 +34,7 @@ class Navigation:
     def add_path(self, u: tuple, v: tuple):
         self.graph[u] = self.graph[u] + (v, )
 
-    def del_path(self, u: tuple, v: tuple):
-        self.graph[u] = tuple(e for e in self.graph[u] if e != v)
-
     def del_node(self, node: tuple):
-        self.graph.pop(node, None)
-
-    def remove_all_path(self, node: tuple):
         self.graph.pop(node, None)
         for point in self.graph:
             self.graph[point] = tuple(
@@ -45,37 +44,23 @@ class Navigation:
         if not self.current_position or not self.goal:
             return False
         backtracker = {}
-        queue = deque()
-        queue.append(self.current_position)
-        while len(queue):
-            point = queue.popleft()
-            for p in self.graph[point]:
-                if p not in backtracker:
-                    queue.append(p)
-                    backtracker[p] = point
-                    if p == self.goal:
-                        self.path = deque()
-                        while p != self.current_position:
-                            self.path.append(p)
-                            p = backtracker[p]
-                        return True
-        self.path = deque()
-        return False
-
-    def calculate_all_path(self):
-        if not self.current_position or not self.goal:
-            return False
-        queue = deque()
-        queue.append((self.current_position, {self.current_position}, tuple()))
-        found = tuple()
-        while len(queue):
-            point, visited, path = queue.popleft()
-            if point == self.goal:
-                found += (path, )
-            for p in self.graph[point]:
-                if p not in visited:
-                    queue.append((p, visited | {p}, path+(p,)))
-        if found:
-            self.all_path = found
-            return True
+        distances = defaultdict(default_inf)
+        distances[self.current_position] = 0
+        queue = [(0, self.current_position)]
+        while queue:
+            current_distance, current_position = heappop(queue)
+            if current_distance <= distances[current_position]:
+                for neighbor in self.graph[current_position]:
+                    distance = hypot(
+                        current_position[0]-neighbor[0], current_position[1]-neighbor[1])
+                    if distance < distances[neighbor]:
+                        distances[neighbor] = distance
+                        backtracker[neighbor] = current_position
+                        if neighbor == self.goal:
+                            self.path = deque()
+                            while neighbor != self.current_position:
+                                self.path.appendleft(neighbor)
+                                neighbor = backtracker[neighbor]
+                            return True
+                        heappush(queue, (distance, neighbor))
         return False

@@ -40,24 +40,52 @@ if __name__ == '__main__':
     import time
     from Navigation import Navigation
     from DifferentialDrive import DifferentialDrive
+    from datetime import datetime
     navigation = Navigation()
-    diffdrive = DifferentialDrive(10)
+    diffdrive = DifferentialDrive(1)
     t = time.time()
     n = int(input('Enter map size: '))
     createDummy(navigation, n)
     print('Created Map in {}s'.format(time.time()-t))
     navigation.set_position(0, 0)
+    print('Set Current Position : {}'.format((0, 0)))
     navigation.set_goal(n-1, n-1)
+    print('Set Goal : {}'.format((n-1, n-1)))
     t = time.time()
-    navigation.del_node((n//4, n//4))
+    navigation.calculate_shortest_path()
+    print('Calculated path in {}s'.format(time.time()-t))
+    print(navigation.path)
+    t = time.time()
+    print('Delete node : {}, {}, {}, {}'.format((0, n//4), (n*3//4, n//4), (n//4, 0), (n*3//4, n*3//4)))
+    navigation.del_node((0, n//4))
     navigation.del_node((n*3//4, n//4))
-    navigation.del_node((n//4, n*3//4))
+    navigation.del_node((n//4, 0))
     navigation.del_node((n*3//4, n*3//4))
-    navigation.remove_all_path((n//2, n//2))
     print('Modified Map in {}s'.format(time.time()-t))
     t = time.time()
     navigation.calculate_shortest_path()
     print('Calculated path in {}s'.format(time.time()-t))
+    print(navigation.path)
     diffdrive.set_path(navigation.path)
+    t = time.time()
     diffdrive.create_robot_motion()
-    print(diffdrive.robot_motion)
+    print('Calculated robot motion in {}s'.format(time.time()-t))
+    print(diffdrive.robot_motion, end='\n-----------------------------\n')
+    current_position = (0, 0, 90)
+    while True:
+        if diffdrive.turn_timer != 0:
+            for i in range(10):
+                motor_speed = diffdrive.get_motor_speed(current_position[0], current_position[1], current_position[2],
+                                                        datetime.now().timestamp())
+                print(motor_speed)
+                time.sleep(0.4)
+            diffdrive.turn_timer = 0
+            continue
+        else:
+            current_position = diffdrive.robot_motion[0]
+        motor_speed = diffdrive.get_motor_speed(current_position[0], current_position[1], current_position[2],
+                                                datetime.now().timestamp())
+        if motor_speed != (0, 0):
+            print(motor_speed)
+        else:
+            break
