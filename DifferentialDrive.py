@@ -11,12 +11,10 @@ Kp = 0.01
 Ki = 0.005
 Kd = 0.001
 
-
 def get_angle(timer, period):
     if timer <= period/2:
         return TURN_CONSTANT*timer
     return TURN_CONSTANT*(period-timer)
-
 
 class DifferentialDrive:
 
@@ -27,7 +25,7 @@ class DifferentialDrive:
         self.turn_period = 0
         self.sum_error = 0
         self.prev_error = 0
-        self.integral_error = 0
+        self.diff_error = 0
 
     def create_robot_motion(self, navigation: Navigation):
         degree = None
@@ -51,7 +49,7 @@ class DifferentialDrive:
             if abs(radians(self.robot_motion[0][2]-direction)) > DIRECTION_ERROR_THRES:
                 self.prev_error = 0
                 self.sum_error = 0
-                self.integral_error = 0
+                self.diff_error = 0
                 if not self.turn_timer:
                     try:
                         self.turn_period = 2/TURN_CONSTANT * \
@@ -73,9 +71,9 @@ class DifferentialDrive:
             else:
                 error = radians(direction-self.robot_motion[0][2])
                 self.sum_error += error
-                self.integral_error = error-self.prev_error
+                self.diff_error = error-self.prev_error
                 self.turn_timer = 0
-                omega = error*Kp+self.sum_error*Ki+self.integral_error*Kd
+                omega = error*Kp+self.sum_error*Ki+self.diff_error*Kd
             if direction > self.robot_motion[0][2]:
                 omega *= -1
             return (DEFAULT_SPEED + omega*self.dimension/2, DEFAULT_SPEED - omega*self.dimension/2)
