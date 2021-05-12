@@ -1,5 +1,5 @@
 import pygame, numpy as np
-from math import degrees, sin, cos, pi
+from math import degrees, sin, cos, pi, radians
 
 from planner import Planner
 from navigator import Navigator
@@ -20,13 +20,16 @@ def normalized_angle(angle):
 def build_map():
     return np.zeros((500, 500, 3))
 
+def get_angle_diff(angle1, angle2):
+    return (angle1 - angle2 + 180) % 360 - 180
+
 def decided_position(current_position, planned):
     closest = float('inf')
     index = -1
     for idx, (x, y, direction) in enumerate(planned):
-        if (current_position[0] - x)**2 + (current_position[1] - y)**2 < closest:
+        if (current_position[0] - x)**2 + (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction))) < closest:
             closest = (current_position[0] - x)**2 + \
-                (current_position[1] - y)**2
+                (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction)))
             index = idx
     if index == len(planned) - 1: # TODO
         next_index = None
@@ -48,7 +51,7 @@ class Envir:
         self.textRect.center=(50, dimentions[1]-30)
 
     def write_info(self, x, y, theta, _x, _y):
-        txt = f"POSITION :({x}, {y}, {round(degrees(theta), 1)}) GOAL : ({_x}, {_y})"
+        txt = f"POSITION : ({x}, {y}, {round(degrees(theta), 1)}) GOAL : ({_x}, {_y})"
         self.text = self.font.render(txt, True, WHITE, BLACK)
         self.map.blit(self.text, self.textRect)
 
@@ -84,8 +87,9 @@ class Robot:
 planner = Planner()
 navigator = Navigator()
 _map = map_wrapper(build_map())
-current_position = (point_wrapper(50), point_wrapper(380), point_wrapper(0))
-goal = (200, 200)
+start = (50, 250)
+goal = (300, 400)
+current_position = (point_wrapper(start[0]), point_wrapper(start[1]), 0)
 planner.update_map(_map)
 planner.update_position(current_position)
 planner.update_goal((point_wrapper(goal[0]), point_wrapper(goal[1])))
@@ -93,7 +97,6 @@ planner.plan()
 print(planner.planned)
 
 pygame.init()
-start = (50, 380)
 dims=(500, 500)
 running = True
 
@@ -105,9 +108,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    point, next_point = decided_position((point_wrapper(robot.x), point_wrapper(robot.y)), planner.planned)
+    point, next_point = decided_position((point_wrapper(robot.x), point_wrapper(robot.y), degrees(robot.theta)), planner.planned)
     if next_point:
-        vl, vr = navigator.get_motor_speed((point_wrapper(robot.x), point_wrapper(robot.y), degrees(robot.theta)), planner.planned[point], planner.planned[next_point], pygame.time.get_ticks())
+        vl, vr = navigator.get_motor_speed((point_wrapper(robot.x), point_wrapper(robot.y), degrees(robot.theta)), planner.planned[point], pygame.time.get_ticks())
     else:
         vl, vr = (0, 0)
     robot.update_speed(vl, vr)

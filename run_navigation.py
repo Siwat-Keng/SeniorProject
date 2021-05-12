@@ -1,6 +1,7 @@
 from rospy import Publisher, Rate, init_node, Service, is_shutdown
 from json import loads, dumps
 from time import time
+from math import radians
 
 from robot_state.srv import Planning
 from std_msgs.msg import Float32MultiArray
@@ -44,13 +45,18 @@ def validate_planned(planned, map):
     return True
 
 
+def get_angle_diff(angle1, angle2):
+    return (angle1 - angle2 + 180) % 360 - 180
+
+
 def decided_position(current_position, planned):
     closest = float('inf')
     index = -1
     for idx, (x, y, direction) in enumerate(planned):
-        if (current_position[0] - x)**2 + (current_position[1] - y)**2 < closest:
+        if (current_position[0] - x)**2 + (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction))) < closest:
             closest = (current_position[0] - x)**2 + \
-                (current_position[1] - y)**2
+                (current_position[1] - y)**2 + \
+                abs(radians(get_angle_diff(current_position[2], direction)))
             index = idx
     if closest > POSITION_ERROR_THRES:
         raise POSITION_ERROR_EXCEPTOON
@@ -120,7 +126,7 @@ class Node:
         if not next_point:
             self.status = IDLE
         self.publisher.publish(Float32MultiArray(data=self.navigator.get_motor_speed(
-            self.planner.current_position, current_point, next_point, time())))
+            self.planner.current_position, self.planner.planned[current_point], time())))
 
     def publish(self):
         while not is_shutdown():
