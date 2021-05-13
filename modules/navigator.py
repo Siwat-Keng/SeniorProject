@@ -4,7 +4,7 @@ ROBOT_DIMENSION = 0.01
 DEFAULT_SPEED = 0.005
 TRUCK_LENGHT = 0.001
 TURN_CONSTANT = 0.25
-TURN_TRESH = 22.5
+TURN_TRESH = 0
 
 
 def get_angle_diff(angle1, angle2):

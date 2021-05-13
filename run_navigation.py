@@ -8,6 +8,7 @@ from std_msgs.msg import Float32MultiArray
 
 from modules.planner import Planner
 from modules.navigator import Navigator
+from modules.position import Position
 from modules.wrapper import point_wrapper, map_wrapper
 
 # Response
@@ -49,29 +50,12 @@ def get_angle_diff(angle1, angle2):
     return (angle1 - angle2 + 180) % 360 - 180
 
 
-def decided_position(current_position, planned):
-    closest = float('inf')
-    index = -1
-    for idx, (x, y, direction) in enumerate(planned):
-        if (current_position[0] - x)**2 + (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction))) < closest:
-            closest = (current_position[0] - x)**2 + \
-                (current_position[1] - y)**2 + \
-                abs(radians(get_angle_diff(current_position[2], direction)))
-            index = idx
-    if closest > POSITION_ERROR_THRES:
-        raise POSITION_ERROR_EXCEPTOON
-    if index == len(planned) - 1:
-        next_index = None
-    else:
-        next_index = index + 1
-    return (index, next_index)
-
-
 class Node:
 
     def __init__(self):
         self.planner = Planner()
         self.navigator = Navigator()
+        self.position = Position()
         self.status = IDLE
         self.publisher = Publisher(
             PUBLISH_TO, Float32MultiArray, queue_size=10)
@@ -114,19 +98,18 @@ class Node:
         Service(SERVICE_NAME, Planning, self.callback)
 
     def operate(self):
-        try:
-            current_point, next_point = decided_position(
-                self.planner.current_position, self.planner.planned)
-        except POSITION_ERROR_EXCEPTOON:
+        planned_position = self.position.get_position(self.planner.current_position[0], self.planner.current_position[1])
+        if self.position.threshold_check(POSITION_ERROR_THRES):
             self.publisher.publish(Float32MultiArray(data=[0, 0]))
             print('Node : Hm... where am I?')
             self.planner.plan()
-            current_point, next_point = decided_position(
-                self.planner.current_position, self.planner.planned)
-        if not next_point:
+            self.position.update_plan(self.planner.planned)
+            planned_position = self.position.get_position(self.planner.current_position[0], self.planner.current_position[1])
+        if self.position.at_goal((self.planner.current_position[0], self.planner.current_position[1])):
             self.status = IDLE
+            return
         self.publisher.publish(Float32MultiArray(data=self.navigator.get_motor_speed(
-            self.planner.current_position, self.planner.planned[current_point], time())))
+            self.planner.current_position, planned_position, time())))
 
     def publish(self):
         while not is_shutdown():

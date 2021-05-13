@@ -1,8 +1,10 @@
-import pygame, numpy as np
-from math import degrees, sin, cos, pi, radians
+import pygame
+import numpy as np
+from math import degrees, fabs, sin, cos, pi, radians, sqrt
 
 from planner import Planner
 from navigator import Navigator
+from position import Position
 from wrapper import point_wrapper, map_wrapper
 
 BLACK = (0, 0, 0)
@@ -14,28 +16,34 @@ YELLOW = (255, 255, 0)
 
 M2P = 3779.52
 
+
 def normalized_angle(angle):
     return (angle + pi) % (2 * pi) - pi
+
 
 def build_map():
     return np.zeros((500, 500, 3))
 
+
 def get_angle_diff(angle1, angle2):
     return (angle1 - angle2 + 180) % 360 - 180
 
-def decided_position(current_position, planned):
+
+def decided_position(current_position, planned, min_idx):
     closest = float('inf')
     index = -1
-    for idx, (x, y, direction) in enumerate(planned):
+    for idx, (x, y, direction) in enumerate(tuple(planned)[min_idx:]):
         if (current_position[0] - x)**2 + (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction))) < closest:
             closest = (current_position[0] - x)**2 + \
-                (current_position[1] - y)**2 + abs(radians(get_angle_diff(current_position[2], direction)))
+                (current_position[1] - y)**2 + \
+                abs(radians(get_angle_diff(current_position[2], direction)))
             index = idx
-    if index == len(planned) - 1: # TODO
+    if index == len(planned) - 1:  # TODO
         next_index = None
     else:
         next_index = index + 1
-    return (index, next_index)
+    return (index + min_idx, next_index)
+
 
 class Envir:
 
@@ -48,12 +56,13 @@ class Envir:
         self.font = pygame.font.Font('freesansbold.ttf', 20)
         self.text = self.font.render('default', True, WHITE, BLACK)
         self.textRect = self.text.get_rect()
-        self.textRect.center=(50, dimentions[1]-30)
+        self.textRect.center = (50, dimentions[1]-30)
 
     def write_info(self, x, y, theta, _x, _y):
         txt = f"POSITION : ({x}, {y}, {round(degrees(theta), 1)}) GOAL : ({_x}, {_y})"
         self.text = self.font.render(txt, True, WHITE, BLACK)
         self.map.blit(self.text, self.textRect)
+
 
 class Robot:
 
@@ -64,10 +73,10 @@ class Robot:
         self.theta = 0
         self.vl = 0
         self.vr = 0
-        self.img=pygame.image.load(robotImg)
-        self.rotated=self.img
-        self.rect = self.rotated.get_rect(center = (self.x, self.y))
-    
+        self.img = pygame.image.load(robotImg)
+        self.rotated = self.img
+        self.rect = self.rotated.get_rect(center=(self.x, self.y))
+
     def draw(self, map):
         map.blit(self.rotated, self.rect)
 
@@ -81,14 +90,16 @@ class Robot:
         self.theta += (self.vr-self.vl)/self.w*dt
         self.theta = normalized_angle(self.theta)
 
-        self.rotated = pygame.transform.rotozoom(self.img, degrees(self.theta), 1)
+        self.rotated = pygame.transform.rotozoom(
+            self.img, degrees(self.theta), 1)
         self.rect = self.rotated.get_rect(center=(self.x, self.y))
+
 
 planner = Planner()
 navigator = Navigator()
 _map = map_wrapper(build_map())
-start = (50, 250)
-goal = (300, 400)
+start = (50, 400)
+goal = (450, 100)
 current_position = (point_wrapper(start[0]), point_wrapper(start[1]), 0)
 planner.update_map(_map)
 planner.update_position(current_position)
@@ -96,8 +107,11 @@ planner.update_goal((point_wrapper(goal[0]), point_wrapper(goal[1])))
 planner.plan()
 print(planner.planned)
 
+positioner = Position()
+positioner.update_plan(planner.planned)
+
 pygame.init()
-dims=(500, 500)
+dims = (500, 500)
 running = True
 
 environment = Envir(dims)
@@ -108,9 +122,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    point, next_point = decided_position((point_wrapper(robot.x), point_wrapper(robot.y), degrees(robot.theta)), planner.planned)
-    if next_point:
-        vl, vr = navigator.get_motor_speed((point_wrapper(robot.x), point_wrapper(robot.y), degrees(robot.theta)), planner.planned[point], pygame.time.get_ticks())
+    planned_position = positioner.get_position(
+        point_wrapper(robot.x), point_wrapper(robot.y))
+    if not positioner.at_goal(planned_position):
+        vl, vr = navigator.get_motor_speed((point_wrapper(robot.x), point_wrapper(
+            robot.y), degrees(robot.theta)), planned_position, pygame.time.get_ticks())
     else:
         vl, vr = (0, 0)
     robot.update_speed(vl, vr)
@@ -120,5 +136,5 @@ while running:
     pygame.display.update()
     environment.map.fill(BLACK)
     robot.draw(environment.map)
-    environment.write_info(int(robot.x), int(robot.y), robot.theta, goal[0], goal[1])
-
+    environment.write_info(int(robot.x), int(
+        robot.y), robot.theta, goal[0], goal[1])
