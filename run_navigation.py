@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from rospy import Publisher, Rate, init_node, Service, is_shutdown
 from json import loads, dumps
 from time import time
@@ -30,7 +32,7 @@ NODE_NAME = 'planning_runner'
 SERVICE_NAME = 'planning'
 PUBLISH_TO = 'robotControl'
 
-POSITION_ERROR_THRES = 100
+POSITION_ERROR_THRES = 1000
 
 
 class POSITION_ERROR_EXCEPTOON(Exception):
@@ -53,6 +55,10 @@ def get_angle_diff(angle1, angle2):
 class Node:
 
     def __init__(self):
+
+        init_node(NODE_NAME, anonymous=True)
+        Service(SERVICE_NAME, Planning, self.callback)
+
         self.planner = Planner()
         self.navigator = Navigator()
         self.position = Position()
@@ -66,8 +72,8 @@ class Node:
         commands = loads(request.req)
         response = {'status': 'type error'}
         if commands['type'] == SET_GOAL:
-            self.planner.update_goal(point_wrapper(
-                commands['goal'][0]), point_wrapper(commands['goal'][1]))
+            self.planner.update_goal((point_wrapper(
+                commands['goal'][0]), point_wrapper(commands['goal'][1])))
             self.goal = commands['goal']
             response['status'] = 'ok'
         elif commands['type'] == MOVE:
@@ -83,19 +89,19 @@ class Node:
                 self.status = IDLE
                 response['status'] = 'ok'
         elif commands['type'] == SET_MAP:
-            self.planner.update_position(point_wrapper(commands['occupancy_grid_position'][0]), point_wrapper(
-                commands['occupancy_grid_position'][1]), commands['real_position'][2])
+
+            self.planner.update_position((point_wrapper(commands['occupancy_grid_position'][0]), 
+            point_wrapper(commands['occupancy_grid_position'][1]), 
+            commands['real_position'][2]))
+
             self.planner.update_map(map_wrapper(commands['map']))
             response['state'] = self.status
             response['target'] = self.goal
-            response['path'] = self.planner.planned
+            response['path'] = self.planner.get_path()
             response['status'] = 'ok'
         print(response)
         return dumps(response)
 
-    def init_node(self):
-        init_node(NODE_NAME, anonymous=True)
-        Service(SERVICE_NAME, Planning, self.callback)
 
     def operate(self):
         planned_position = self.position.get_position(self.planner.current_position[0], self.planner.current_position[1])
@@ -108,21 +114,23 @@ class Node:
         if self.position.at_goal((self.planner.current_position[0], self.planner.current_position[1])):
             self.status = IDLE
             return
-        self.publisher.publish(Float32MultiArray(data=self.navigator.get_motor_speed(
-            self.planner.current_position, planned_position, time())))
+        try:
+            self.publisher.publish(Float32MultiArray(data=self.navigator.get_motor_speed(
+                self.planner.current_position, planned_position, time())))
+        except:
+            self.operate()
 
     def publish(self):
         while not is_shutdown():
             if self.status == IDLE or self.status == PAUSED:
                 self.publisher.publish(Float32MultiArray(data=[0, 0]))
             elif self.status == WALKING:
-                if not validate_planned(self.planner.planned, self.planner.map):
-                    self.planner.plan()
+                # if not validate_planned(self.planner.planned, self.planner.map):
+                #     self.planner.plan()
                 self.operate()
             self.rate.sleep()
 
     def run(self):
-        self.init_node()
         self.publish()
 
 

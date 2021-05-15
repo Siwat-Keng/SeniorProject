@@ -69,24 +69,30 @@ class Planner:
     def plan(self):
         print('Planner : Calculating...')
         queue = deque([self.current_position])
+        start_point = self.current_position
         backtracker = {}
         while len(queue):
             x, y, direction = queue.popleft()
             if (x, y) == self.goal:
                 self.planned = deque()
                 current_position = (x, y, direction)
-                while current_position != self.current_position:
+                while current_position != start_point:
                     self.planned.appendleft(current_position)
                     current_position = backtracker[current_position]
                 self.planned.appendleft(current_position)
                 return True
             for _x, _y, _direction in get_posible_path(x, y, direction):
-                if _x >= 0 and _y >= 0 and _x <= len(self.map[0]) - 1 and _y <= len(self.map) - 1 and not sum(self.map[y][x]) and (_x, _y, _direction) not in backtracker:
+                if _x >= 0 and _y >= 0 and _x <= len(self.map[0]) - 1 and _y <= len(self.map) - 1 and sum(self.map[y][x]) and (_x, _y, _direction) not in backtracker:
                     backtracker[(_x, _y, _direction)] = (x, y, direction)
                     queue.append((_x, _y, _direction))
 
         self.planned = deque()
         return False
+    
+    def get_path(self):
+        if self.planned:
+            return list(self.planned)
+        return [self.current_position]
 
     def clear(self):
         print('Planner : Clearing data...')

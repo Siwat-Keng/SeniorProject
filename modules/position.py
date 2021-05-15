@@ -47,6 +47,8 @@ class Position:
         return self.error >= thres
 
     def update_plan(self, plan):
+        if not plan:
+            return
         self.planned = plan
         self.goal = list(plan)[len(plan) - 1]
         line_data = []
