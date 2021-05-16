@@ -1,8 +1,9 @@
 from collections import deque
 from math import ceil, sqrt
+import numpy
 
 ANGLE = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
-WALL_DISTANCE_THRES = 10 
+WALL_DISTANCE_THRES = 5
 
 
 def get_angle_diff(angle1, angle2):
@@ -26,30 +27,12 @@ def offset_angle(angle, offset):
     return angle + offset
 
 def check_wall(point, map):
-    queue = deque([point])
-    _set = set()
-    _set.add(point)
-    while len(queue):
-        _point = queue.popleft()
-        if not sum(map[_point[1]][_point[0]]) and sqrt((point[0] - _point[0])**2 + (point[1] - _point[1])**2) < WALL_DISTANCE_THRES:
-            return True
-        elif not sum(map[_point[1]][_point[0]]):
-            return False
-        else:
-            if (_point[0] - 1, _point[1]) not in _set:
-                queue.append((_point[0] - 1, _point[1]))
-                _set.add((_point[0] - 1, _point[1]))
-            if (_point[0] + 1, _point[1]) not in _set:
-                queue.append((_point[0] + 1, _point[1]))
-                _set.add((_point[0] + 1, _point[1]))
-            if (_point[0], _point[1] - 1) not in _set:
-                queue.append((_point[0], _point[1] - 1))
-                _set.add((_point[0], _point[1] - 1))
-            if (_point[0], _point[1] + 1) not in _set:
-                queue.append((_point[0], _point[1] + 1))
-                _set.add((_point[0], _point[1] + 1))
+    x, y = point
+    for i in map[y - WALL_DISTANCE_THRES:y + WALL_DISTANCE_THRES]:
+        for j in i[x - WALL_DISTANCE_THRES:x + WALL_DISTANCE_THRES]:
+            if not sum(j):
+                return False
     return True
-
 
 
 def get_posible_path(x, y, direction):
@@ -93,6 +76,8 @@ class Planner:
         self.goal = goal
 
     def plan(self):
+        if not self.current_position:
+            return
         print('Planner : Calculating...')
         queue = deque([self.current_position])
         start_point = self.current_position
@@ -108,11 +93,12 @@ class Planner:
                 self.planned.appendleft(current_position)
                 return True
             for _x, _y, _direction in get_posible_path(x, y, direction):
-                if _x >= 0 and _y >= 0 and _x <= len(self.map[0]) - 1 and _y <= len(self.map) - 1 and sum(self.map[y][x]) and (_x, _y, _direction) not in backtracker and check_wall((x, y), self.map):
+                if _x >= 0 and _y >= 0 and _x <= len(self.map[0]) - 1 and _y <= len(self.map) - 1 and (_x, _y, _direction) not in backtracker and check_wall((_x, _y), self.map):
                     backtracker[(_x, _y, _direction)] = (x, y, direction)
                     queue.append((_x, _y, _direction))
 
         self.planned = deque()
+        print('not found')
         return False
     
     def get_path(self):

@@ -105,6 +105,9 @@ class Node:
 
 
     def operate(self):
+        if self.calculating:
+            self.publisher.publish(Float32MultiArray(data=[0, 0]))
+            return
         planned_position = self.position.get_position(self.planner.current_position[0], self.planner.current_position[1])
         if self.position.threshold_check(POSITION_ERROR_THRES):
             self.publisher.publish(Float32MultiArray(data=[0, 0]))
@@ -114,9 +117,6 @@ class Node:
             planned_position = self.position.get_position(self.planner.current_position[0], self.planner.current_position[1])
         if self.position.at_goal((planned_position[0], planned_position[1])):
             self.status = IDLE
-            self.publisher.publish(Float32MultiArray(data=[0, 0]))
-            return
-        if self.calculating:
             self.publisher.publish(Float32MultiArray(data=[0, 0]))
             return
         self.publisher.publish(Float32MultiArray(data=self.navigator.get_motor_speed(
