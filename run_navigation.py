@@ -11,7 +11,6 @@ from std_msgs.msg import Float32MultiArray
 from modules.planner import Planner
 from modules.navigator import Navigator
 from modules.position import Position
-from modules.wrapper import point_wrapper, map_wrapper
 
 # Response
 IDLE = 0
@@ -32,7 +31,7 @@ NODE_NAME = 'planning_runner'
 SERVICE_NAME = 'planning'
 PUBLISH_TO = 'robotControl'
 
-POSITION_ERROR_THRES = 1000
+POSITION_ERROR_THRES = 100
 
 
 class POSITION_ERROR_EXCEPTOON(Exception):
@@ -73,8 +72,8 @@ class Node:
         commands = loads(request.req)
         response = {'status': 'type error'}
         if commands['type'] == SET_GOAL:
-            self.planner.update_goal((point_wrapper(
-                commands['goal'][0]), point_wrapper(commands['goal'][1])))
+            self.planner.update_goal((
+                commands['goal'][0], commands['goal'][1]))
             self.goal = commands['goal']
             self.calculating = True
             self.planner.plan()
@@ -94,10 +93,10 @@ class Node:
                 self.status = IDLE
                 response['status'] = 'ok'
         elif commands['type'] == SET_MAP:
-            self.planner.update_position((point_wrapper(commands['occupancy_grid_position'][0]), 
-            point_wrapper(commands['occupancy_grid_position'][1]), 
+            self.planner.update_position((commands['occupancy_grid_position'][0], 
+            commands['occupancy_grid_position'][1], 
             commands['real_position'][2]))
-            self.planner.update_map(map_wrapper(commands['map']))
+            self.planner.update_map(commands['map'])
             response['state'] = self.status
             response['target'] = self.goal
             response['path'] = self.planner.get_path()
