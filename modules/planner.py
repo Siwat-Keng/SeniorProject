@@ -3,7 +3,7 @@ from math import ceil, sqrt
 import numpy
 
 ANGLE = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
-WALL_DISTANCE_THRES = 5
+WALL_DISTANCE_THRES = 10
 
 
 def get_angle_diff(angle1, angle2):
@@ -91,6 +91,7 @@ class Planner:
                     self.planned.appendleft(current_position)
                     current_position = backtracker[current_position]
                 self.planned.appendleft(current_position)
+                print(self.planned)
                 return True
             for _x, _y, _direction in get_posible_path(x, y, direction):
                 if _x >= 0 and _y >= 0 and _x <= len(self.map[0]) - 1 and _y <= len(self.map) - 1 and (_x, _y, _direction) not in backtracker and check_wall((_x, _y), self.map):
